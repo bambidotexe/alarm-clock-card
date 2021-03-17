@@ -1,0 +1,229 @@
+[
+  {
+    "id": "a196b41a.0173e8",
+    "type": "inject",
+    "z": "c9a0735f.09b2d",
+    "name": "",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "*/1 0-23 * * *",
+    "once": false,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 130,
+    "y": 80,
+    "wires": [
+      [
+        "e3f0e979.6a22f8"
+      ]
+    ]
+  },
+  {
+    "id": "102af99f.ed07b6",
+    "type": "moment",
+    "z": "c9a0735f.09b2d",
+    "name": "Minus 30min",
+    "topic": "",
+    "input": "alarm",
+    "inputType": "msg",
+    "inTz": "Europe/Paris",
+    "adjAmount": "30",
+    "adjType": "minutes",
+    "adjDir": "subtract",
+    "format": "HH:mm",
+    "locale": "C",
+    "output": "start",
+    "outputType": "msg",
+    "outTz": "Europe/Paris",
+    "x": 130,
+    "y": 200,
+    "wires": [
+      [
+        "f7d3ee67.c087e"
+      ]
+    ]
+  },
+  {
+    "id": "f7d3ee67.c087e",
+    "type": "function",
+    "z": "c9a0735f.09b2d",
+    "name": "Compare time",
+    "func": "const current = new Date();\n\nlet currentHours = current.getHours();\ncurrentHours =  (currentHours < 10 ? '0' : '') + currentHours;\n\nlet currentMinutes = current.getMinutes();\ncurrentMinutes = (currentMinutes < 10 ? '0' : '') + currentMinutes;\n\nconst currentStr = currentHours + ':' + currentMinutes;\nif (currentStr == msg.start) {\n    return msg;\n}\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 300,
+    "y": 200,
+    "wires": [
+      [
+        "4850d4af.c57e4c",
+        "27ab7b0a.ebd054"
+      ]
+    ]
+  },
+  {
+    "id": "746ba836.3b9e58",
+    "type": "function",
+    "z": "c9a0735f.09b2d",
+    "name": "Compare time",
+    "func": "const current = new Date();\n\nlet currentHours = current.getHours();\ncurrentHours =  (currentHours < 10 ? '0' : '') + currentHours;\n\nlet currentMinutes = current.getMinutes();\ncurrentMinutes = (currentMinutes < 10 ? '0' : '') + currentMinutes;\n\nconst currentStr = currentHours + ':' + currentMinutes;\nif (currentStr == msg.start) {\n    return msg;\n}\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 700,
+    "y": 200,
+    "wires": [
+      [
+        "786e7f69.91c05",
+        "ebce1d5b.56573"
+      ]
+    ]
+  },
+  {
+    "id": "1712f1b8.501dbe",
+    "type": "moment",
+    "z": "c9a0735f.09b2d",
+    "name": "At time",
+    "topic": "",
+    "input": "alarm",
+    "inputType": "msg",
+    "inTz": "Europe/Paris",
+    "adjAmount": "0",
+    "adjType": "minutes",
+    "adjDir": "add",
+    "format": "HH:mm",
+    "locale": "C",
+    "output": "start",
+    "outputType": "msg",
+    "outTz": "Europe/Paris",
+    "x": 540,
+    "y": 200,
+    "wires": [
+      [
+        "746ba836.3b9e58"
+      ]
+    ]
+  },
+  {
+    "id": "984a1535.6a9d38",
+    "type": "moment",
+    "z": "c9a0735f.09b2d",
+    "name": "Plus 30min",
+    "topic": "",
+    "input": "alarm",
+    "inputType": "msg",
+    "inTz": "Europe/Paris",
+    "adjAmount": "30",
+    "adjType": "minutes",
+    "adjDir": "add",
+    "format": "HH:mm",
+    "locale": "C",
+    "output": "start",
+    "outputType": "msg",
+    "outTz": "Europe/Paris",
+    "x": 950,
+    "y": 200,
+    "wires": [
+      [
+        "befbab54.387908"
+      ]
+    ]
+  },
+  {
+    "id": "befbab54.387908",
+    "type": "function",
+    "z": "c9a0735f.09b2d",
+    "name": "Compare time",
+    "func": "const current = new Date();\n\nlet currentHours = current.getHours();\ncurrentHours =  (currentHours < 10 ? '0' : '') + currentHours;\n\nlet currentMinutes = current.getMinutes();\ncurrentMinutes = (currentMinutes < 10 ? '0' : '') + currentMinutes;\n\nconst currentStr = currentHours + ':' + currentMinutes;\nif (currentStr == msg.start) {\n    return msg;\n}\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 1120,
+    "y": 200,
+    "wires": [
+      [
+        "238e5cf1.0bfdb4"
+      ]
+    ]
+  },
+  {
+    "id": "e3e6e6ff.465548",
+    "type": "function",
+    "z": "c9a0735f.09b2d",
+    "name": "Parse alarms",
+    "func": "function decodeRaw(raw) {\n    return {\n      hour: +raw.slice(0, 2),\n      minute: +raw.slice(2, 4),\n      enabled: !!+raw.slice(4, 5),\n      monday: !!+raw.slice(5, 6),\n      tuesday: !!+raw.slice(6, 7),\n      wednesday: !!+raw.slice(7, 8),\n      thursday: !!+raw.slice(8, 9),\n      friday: !!+raw.slice(9, 10),\n      saturday: !!+raw.slice(10, 11),\n      sunday: !!+raw.slice(11, 12)\n    }\n}\n\nvar alarms = msg.payload.split(',');\nfor (let index = alarms.length - 1; index >= 0; index--) {\n  var alarm = alarms[index];\n  if (alarm.length != 12) {\n    alarms.splice(index, 1);\n    continue;\n  }\n  alarms[index] = decodeRaw(alarm);\n}\n\nmsg.payload = alarms;\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 450,
+    "y": 80,
+    "wires": [
+      [
+        "8936812.023bd8"
+      ]
+    ]
+  },
+  {
+    "id": "e3f0e979.6a22f8",
+    "type": "api-current-state",
+    "z": "c9a0735f.09b2d",
+    "name": "Get alarms",
+    "server": "74486a3f.16c304",
+    "version": 1,
+    "outputs": 1,
+    "halt_if": "",
+    "halt_if_type": "str",
+    "halt_if_compare": "is",
+    "override_topic": false,
+    "entity_id": "input_text.alarm_bedroom",
+    "state_type": "str",
+    "state_location": "payload",
+    "override_payload": "msg",
+    "entity_location": "data",
+    "override_data": "msg",
+    "blockInputOverrides": false,
+    "x": 290,
+    "y": 80,
+    "wires": [
+      [
+        "e3e6e6ff.465548"
+      ]
+    ]
+  },
+  {
+    "id": "8936812.023bd8",
+    "type": "function",
+    "z": "c9a0735f.09b2d",
+    "name": "Filter alarms",
+    "func": "var now = new Date();\nvar day;\nswitch (now.getDay()) {\n  case 0:\n    day = 'sunday';\n    break;\n  case 1:\n    day = 'monday';\n    break;\n  case 2:\n    day = 'tuesday';\n    break;\n  case 3:\n    day = 'wednesday';\n    break;\n  case 4:\n    day = 'thursday';\n    break;\n  case 5:\n    day = 'friday';\n    break;\n  case 6:\n    day = 'saturday';\n    break;\n}\n\nvar alarms = msg.payload;\nfor (let index = alarms.length - 1; index >= 0; index--) {\n  var alarm = alarms[index];\n  var onlyTommorrow = !alarm.monday && !alarm.tuesday && !alarm.wednesday && !alarm.thursday && !alarm.friday && !alarm.saturday && !alarm.sunday;\n  if (alarm.enabled && (alarm[day] || onlyTommorrow)) {\n    alarm.alarm = ((alarm.hour < 10 ? '0': '') + alarm.hour) + ':' + ((alarm.minute < 10 ? '0': '') + alarm.minute);\n    if (\n      onlyTommorrow &&\n      alarm.hour == now.getHours() &&\n      alarm.minute == now.getMinutes()\n    ) {\n      alarm.toUnenable = true;\n    }\n  } else {\n    alarms.splice(index, 1);\n  }\n}\n\nreturn [[...alarms]];\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 610,
+    "y": 80,
+    "wires": [
+      [
+        "102af99f.ed07b6",
+        "1712f1b8.501dbe",
+        "984a1535.6a9d38"
+      ]
+    ]
+  },
+  {
+    "id": "74486a3f.16c304",
+    "type": "server",
+    "name": "Home Assistant",
+    "addon": true
+  }
+]
