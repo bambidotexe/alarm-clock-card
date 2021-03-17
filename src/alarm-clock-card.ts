@@ -108,19 +108,32 @@ export class AlarmClockCard extends LitElement {
       <div class="alarm-clock">
         ${alarms.map((alarm, index) => html`
         <div class="alarm">
-          <div class="alarm-datetime"
-              @touchstart=${(e): void => { this._touchAlarmStart(index, e); }}
-              @touchend=${(e): void => { this._touchAlarmEnd(index, e); }}
-              @touchmove=${(e): void => { this._touchAlarmMove(e); }}
-              @mousedown=${(e): void => { this._touchAlarmStart(index, e); }}
-              @mouseup=${(e): void => { this._touchAlarmEnd(index, e); }}
-            >
-            <div class="alarm-time">
-              ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
-                class="alarm-days">
-                ${this._parseDays(alarm)}
-            </div>
-          </div>
+          ${  this._isTouchDevice()
+            ? html`
+              <div class="alarm-datetime"
+                  @touchstart=${(): void => { this._touchAlarmStart(index); }}
+                  @touchend=${(): void => { this._touchAlarmEnd(index); }}
+                  @touchmove=${(): void => { this._touchAlarmMove(); }}>
+                <div class="alarm-time">
+                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
+                    class="alarm-days">
+                    ${this._parseDays(alarm)}
+                </div>
+              </div>
+            `
+            : html`
+              <div class="alarm-datetime"
+                  @mousedown=${(): void => { this._touchAlarmStart(index); }}
+                  @mouseup=${(): void => { this._touchAlarmEnd(index); }}>
+                <div class="alarm-time">
+                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
+                    class="alarm-days">
+                    ${this._parseDays(alarm)}
+                </div>
+              </div>
+            `
+          }
+
           <div class="alarm-actions">
             ${this.selectedAlarmIndex.length > 0
               ? html`
@@ -300,13 +313,11 @@ export class AlarmClockCard extends LitElement {
     this._setAlarms(newAlarms);
   }
 
-  private _touchAlarmStart(index: number, e: any): void {
+  private _touchAlarmStart(index: number): void {
     this.touchAlarmTimer = setTimeout(() => { this.touchAlarmTimer = null; this._selectAlarm(index); }, this.touchAlarmDuration);
-    e.stopPropagation();
-    e.preventDefault();
   }
 
-  private _touchAlarmEnd(index: number, e: any): void {
+  private _touchAlarmEnd(index: number): void {
     if (this.touchAlarmTimer) {
       clearTimeout(this.touchAlarmTimer);
       this.touchAlarmTimer = null;
@@ -317,17 +328,13 @@ export class AlarmClockCard extends LitElement {
         this._editAlarm(index);
       }
     }
-    e.stopPropagation();
-    e.preventDefault();
   }
 
-  private _touchAlarmMove(e: any): void {
+  private _touchAlarmMove(): void {
     if (this.touchAlarmTimer) {
       clearTimeout(this.touchAlarmTimer);
       this.touchAlarmTimer = null;
     }
-    e.stopPropagation();
-    e.preventDefault();
   }
 
   private _addAlarm(): void {
@@ -493,6 +500,12 @@ export class AlarmClockCard extends LitElement {
         .filter(x => x !== null)
         .join(', ')
     }
+  }
+
+  private _isTouchDevice(): boolean {
+    return (('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0) ||
+      (navigator.msMaxTouchPoints > 0));
   }
 
   static get styles(): CSSResult {
