@@ -227,7 +227,7 @@ found at http://polymer.github.io/PATENTS.txt
       ha-formfield {
         padding-bottom: 8px;
       }
-    `}};t([K({attribute:!1})],St.prototype,"hass",void 0),t([G()],St.prototype,"_config",void 0),t([G()],St.prototype,"_toggle",void 0),t([G()],St.prototype,"_helpers",void 0),St=t([W("alarm-clock-card-editor")],St);var kt={invalid_configuration:"Invalid configuration"},$t={name:"Alarms",daysShort:{monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat",sunday:"Sun"},daysFirstLetter:{monday:"M",tuesday:"T",wednesday:"W",thursday:"T",friday:"F",saturday:"S",sunday:"S"},repeat:"Repeat",everyday:"Everyday",tommorow:"Tommorow"},Et={common:kt,card:$t},Ht={invalid_configuration:"Configuration invalide"},Mt={name:"Alarmes",daysShort:{monday:"Lun",tuesday:"Mar",wednesday:"Mer",thursday:"Jeu",friday:"Vendredi",saturday:"Samedi",sunday:"Dimanche"},daysFirstLetter:{monday:"L",tuesday:"M",wednesday:"M",thursday:"J",friday:"V",saturday:"S",sunday:"D"},repeat:"Répéter",everyday:"Tout les jours",tommorow:"Demain"},Ct={common:Ht,card:Mt};const Pt={en:Object.freeze({__proto__:null,common:kt,card:$t,default:Et}),nb:Object.freeze({__proto__:null,common:Ht,card:Mt,default:Ct})};function Nt(t,e="",i=""){const n=(localStorage.getItem("selectedLanguage")||"en").replace(/['"]+/g,"").replace("-","_");let s;try{s=t.split(".").reduce((t,e)=>t[e],Pt[n])}catch(e){s=t.split(".").reduce((t,e)=>t[e],Pt.en)}return void 0===s&&(s=t.split(".").reduce((t,e)=>t[e],Pt.en)),""!==e&&""!==i&&(s=s.replace(e,i)),s}
+    `}};t([K({attribute:!1})],St.prototype,"hass",void 0),t([G()],St.prototype,"_config",void 0),t([G()],St.prototype,"_toggle",void 0),t([G()],St.prototype,"_helpers",void 0),St=t([W("alarm-clock-card-editor")],St);var kt={invalid_configuration:"Invalid configuration"},$t={name:"Alarms",daysShort:{monday:"Mon",tuesday:"Tue",wednesday:"Wed",thursday:"Thu",friday:"Fri",saturday:"Sat",sunday:"Sun"},daysFirstLetter:{monday:"M",tuesday:"T",wednesday:"W",thursday:"T",friday:"F",saturday:"S",sunday:"S"},repeat:"Repeat",everyday:"Everyday",tommorow:"Tommorow"},Et={common:kt,card:$t},Ht={invalid_configuration:"Configuration invalide"},Mt={name:"Alarmes",daysShort:{monday:"Lun",tuesday:"Mar",wednesday:"Mer",thursday:"Jeu",friday:"Vendredi",saturday:"Samedi",sunday:"Dimanche"},daysFirstLetter:{monday:"L",tuesday:"M",wednesday:"M",thursday:"J",friday:"V",saturday:"S",sunday:"D"},repeat:"Répéter",everyday:"Tout les jours",tommorow:"Demain"},Ct={common:Ht,card:Mt};const Pt={en:Object.freeze({__proto__:null,common:kt,card:$t,default:Et}),fr:Object.freeze({__proto__:null,common:Ht,card:Mt,default:Ct})};function Nt(t,e="",i=""){const n=(localStorage.getItem("selectedLanguage")||"en").replace(/['"]+/g,"").replace("-","_");let s;try{s=t.split(".").reduce((t,e)=>t[e],Pt[n])}catch(e){s=t.split(".").reduce((t,e)=>t[e],Pt.en)}return void 0===s&&(s=t.split(".").reduce((t,e)=>t[e],Pt.en)),""!==e&&""!==i&&(s=s.replace(e,i)),s}
 /**
  * @license
  * Copyright (c) 2018 The Polymer Project Authors. All rights reserved.
@@ -254,8 +254,9 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
                   @touchend=${()=>{this._touchAlarmEnd(e)}}
                   @touchmove=${()=>{this._touchAlarmMove()}}>
                 <div class="alarm-time">
-                  ${(t.hour<10?"0":"")+t.hour}:${(t.minute<10?"0":"")+t.minute} </div> <div
-                    class="alarm-days">
+                  ${(t.hour<10?"0":"")+t.hour}:${(t.minute<10?"0":"")+t.minute}
+                </div>
+                <div class="alarm-days">
                     ${this._parseDays(t)}
                 </div>
               </div>
@@ -264,8 +265,9 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
                   @mousedown=${()=>{this._touchAlarmStart(e)}}
                   @mouseup=${()=>{this._touchAlarmEnd(e)}}>
                 <div class="alarm-time">
-                  ${(t.hour<10?"0":"")+t.hour}:${(t.minute<10?"0":"")+t.minute} </div> <div
-                    class="alarm-days">
+                  ${(t.hour<10?"0":"")+t.hour}:${(t.minute<10?"0":"")+t.minute}
+                </div>
+                <div class="alarm-days">
                     ${this._parseDays(t)}
                 </div>
               </div>
@@ -395,18 +397,13 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
         display: flex;
         flex-direction: column;
         padding: 0px 0px 16px 0px;
+        margin-top: -4px;
       }
 
       .alarm {
         display: flex;
         flex-direction: row;
-        margin-top: 16px;
-        padding: 0px 16px;
         position: relative;
-      }
-
-      .alarm:nth-child(1) {
-        margin-top: 0;
       }
 
       .alarm-datetime {
@@ -414,10 +411,11 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
         flex-direction: column;
         flex: 1;
         cursor: pointer;
+        padding: 8px 16px;
       }
 
       .alarm-time {
-        line-height: 32px;
+        line-height: 38px;
         font-size: 32px;
         font-weight: bold;
       }
@@ -425,6 +423,7 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
       .alarm-days {
         font-size: 11px;
         opacity: 0.5;
+        margin-top: -3px;
       }
 
       .alarm-actions {
@@ -433,6 +432,10 @@ class Dt{constructor(t){this.classes=new Set,this.changed=!1,this.element=t;cons
         flex-direction: row;
         align-items: center;
         justify-content: center;
+        position: absolute;
+        right: 16px;
+        top: 0;
+        bottom: 0;
       }
 
       .alarm-detail {

@@ -4,7 +4,7 @@ import * as fr from './languages/fr.json';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const languages: any = {
   en: en,
-  nb: fr,
+  fr: fr,
 };
 
 export function localize(string: string, search = '', replace = ''): string {

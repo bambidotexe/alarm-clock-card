@@ -115,8 +115,9 @@ export class AlarmClockCard extends LitElement {
                   @touchend=${(): void => { this._touchAlarmEnd(index); }}
                   @touchmove=${(): void => { this._touchAlarmMove(); }}>
                 <div class="alarm-time">
-                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
-                    class="alarm-days">
+                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute}
+                </div>
+                <div class="alarm-days">
                     ${this._parseDays(alarm)}
                 </div>
               </div>
@@ -126,8 +127,9 @@ export class AlarmClockCard extends LitElement {
                   @mousedown=${(): void => { this._touchAlarmStart(index); }}
                   @mouseup=${(): void => { this._touchAlarmEnd(index); }}>
                 <div class="alarm-time">
-                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
-                    class="alarm-days">
+                  ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute}
+                </div>
+                <div class="alarm-days">
                     ${this._parseDays(alarm)}
                 </div>
               </div>
@@ -526,18 +528,13 @@ export class AlarmClockCard extends LitElement {
         display: flex;
         flex-direction: column;
         padding: 0px 0px 16px 0px;
+        margin-top: -4px;
       }
 
       .alarm {
         display: flex;
         flex-direction: row;
-        margin-top: 16px;
-        padding: 0px 16px;
         position: relative;
-      }
-
-      .alarm:nth-child(1) {
-        margin-top: 0;
       }
 
       .alarm-datetime {
@@ -545,10 +542,11 @@ export class AlarmClockCard extends LitElement {
         flex-direction: column;
         flex: 1;
         cursor: pointer;
+        padding: 8px 16px;
       }
 
       .alarm-time {
-        line-height: 32px;
+        line-height: 38px;
         font-size: 32px;
         font-weight: bold;
       }
@@ -556,6 +554,7 @@ export class AlarmClockCard extends LitElement {
       .alarm-days {
         font-size: 11px;
         opacity: 0.5;
+        margin-top: -3px;
       }
 
       .alarm-actions {
@@ -564,6 +563,10 @@ export class AlarmClockCard extends LitElement {
         flex-direction: row;
         align-items: center;
         justify-content: center;
+        position: absolute;
+        right: 16px;
+        top: 0;
+        bottom: 0;
       }
 
       .alarm-detail {
