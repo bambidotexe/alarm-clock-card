@@ -22,7 +22,7 @@ import './editor';
 import type { Alarm, AlarmClockCardConfig } from './types';
 import { CARD_VERSION } from './const';
 import { localize } from './localize/localize';
-import { mdiPlus, mdiContentSave, mdiDelete, mdiArrowLeft } from "@mdi/js";
+import { mdiPlus, mdiContentSave, mdiDelete, mdiArrowLeft, mdiCheckboxMarked, mdiCheckboxBlankOutline } from "@mdi/js";
 import { classMap } from 'lit-html/directives/class-map.js';
 
 /* eslint no-console: 0 */
@@ -124,7 +124,7 @@ export class AlarmClockCard extends LitElement {
           <div class="alarm-actions">
             ${this.selectedAlarmIndex.length > 0
               ? html`
-                <input type="checkbox" .checked=${this.selectedAlarmIndex.indexOf(index) !== -1} @click=${(): void => { this._selectAlarm(index) }}>
+                <ha-svg-icon .path=${this.selectedAlarmIndex.indexOf(index) !== -1 ? mdiCheckboxMarked : mdiCheckboxBlankOutline }></ha-svg-icon>
               `
               : html`
                 <ha-switch .checked=${alarm.enabled} @click=${(): void => { this._toggleEnabledAlarm(index) }}>
