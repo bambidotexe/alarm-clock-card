@@ -54,12 +54,13 @@ export class AlarmClockCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
   @property({ attribute: false }) public edit = false;
   @property({ attribute: false }) public editHour = true;
-  @property({ attribute: false }) public touchIndex: number | null = null;
-  @property({ attribute: false }) public touchTimeoutId: any = null;
   @property({ attribute: false }) public currentAlarmIndex: number | null = null;
   @property({ attribute: false }) public currentAlarm: Alarm | null = null;
   @property({ attribute: false }) public selectedAlarmIndex: number[] = [];
   @internalProperty() private config!: AlarmClockCardConfig;
+
+  @property({ attribute: false }) public touchAlarmTimer;
+  @property({ attribute: false }) public touchAlarmDuration = 500;
 
   // https://lit-element.polymer-project.org/guide/properties#accessors-custom
   public setConfig(config: AlarmClockCardConfig): void {
@@ -101,13 +102,19 @@ export class AlarmClockCard extends LitElement {
     const alarms = this._getAlarms();
 
     const body = html`
-      <mwc-icon-button class="alarm-add alarm-delete" @click=${() => { this.selectedAlarmIndex.length > 0 ? this._handleDelete() : this._handleAdd() }}>
+      <mwc-icon-button class="alarm-add alarm-delete" @click=${(): void => { this.selectedAlarmIndex.length > 0 ? this._deleteSelectedAlarms() : this._addAlarm() }}>
         <ha-svg-icon .path=${this.selectedAlarmIndex.length > 0 ? mdiDelete : mdiPlus }></ha-svg-icon>
       </mwc-icon-button>
       <div class="alarm-clock">
         ${alarms.map((alarm, index) => html`
         <div class="alarm">
-          <div class="alarm-datetime" @mousedown=${() => { this._handleTouch(index) }} @click=${() => { this._handleClick(index) }}>
+          <div class="alarm-datetime"
+              @touchstart=${(e): void => { this._touchAlarmStart(index, e); }}
+              @touchend=${(e): void => { this._touchAlarmEnd(index, e); }}
+              @touchmove=${(e): void => { this._touchAlarmMove(e); }}
+              @mousedown=${(e): void => { this._touchAlarmStart(index, e); }}
+              @mouseup=${(e): void => { this._touchAlarmEnd(index, e); }}
+            >
             <div class="alarm-time">
               ${(alarm.hour < 10 ? '0' : '' ) + alarm.hour}:${(alarm.minute < 10 ? '0' : '' ) + alarm.minute} </div> <div
                 class="alarm-days">
@@ -117,10 +124,10 @@ export class AlarmClockCard extends LitElement {
           <div class="alarm-actions">
             ${this.selectedAlarmIndex.length > 0
               ? html`
-                <input type="checkbox" .checked=${this.selectedAlarmIndex.indexOf(index) !== -1} @click=${() => { this._toggleSelectedIndex(index) }}>
+                <input type="checkbox" .checked=${this.selectedAlarmIndex.indexOf(index) !== -1} @click=${(): void => { this._selectAlarm(index) }}>
               `
               : html`
-                <ha-switch .checked=${alarm.enabled} @click=${() => { this._handleToggleAlarm(index) }}>
+                <ha-switch .checked=${alarm.enabled} @click=${(): void => { this._toggleEnabledAlarm(index) }}>
                 </ha-switch>
               `
             }
@@ -138,61 +145,61 @@ export class AlarmClockCard extends LitElement {
                 <ha-svg-icon .path=${mdiArrowLeft}></ha-svg-icon>
               </mwc-icon-button>
               <mwc-icon-button class="alarm-detail-save"
-                @click=${this._handleSave}>
+                @click=${this._saveAlarm}>
                 <ha-svg-icon .path=${mdiContentSave}></ha-svg-icon>
               </mwc-icon-button>
             </div>
             <div class="alarm-detail-timepicker">
               <div class="alarm-detail-timepicker-time">
-                <input type="text" maxlength="2" pattern="[0-9]" .value=${(this.currentAlarm!!.hour < 10 ? '0' : '' ) + this.currentAlarm!!.hour} @change=${this._handleCheckUpdateHour} @click=${()=> { this.editHour = true; }}>
+                <input type="text" maxlength="2" pattern="[0-9]" .value=${((this.currentAlarm?.hour ?? 8) < 10 ? '0' : '' ) + this.currentAlarm?.hour} @change=${this._checkAndUpdateEditedAlarmHour} @click=${(): void => { this.editHour = true; }}>
                 <span>:</span>
-                <input type="text" maxlength="2" pattern="[0-9]" .value=${(this.currentAlarm!!.minute < 10 ? '0' : '' ) + this.currentAlarm!!.minute} @change=${this._handleCheckUpdateMinute} @click=${()=> { this.editHour = false; }}>
+                <input type="text" maxlength="2" pattern="[0-9]" .value=${((this.currentAlarm?.minute ?? 0) < 10 ? '0' : '' ) + this.currentAlarm?.minute} @change=${this._checkAndUpdateEditedAlarmMinute} @click=${(): void => { this.editHour = false; }}>
               </div>
               <div class="clock">
                 ${this.editHour
                     ? html`
                       <div class="clock-hour">
-                        <mwc-icon-button hour="12" @click=${()=> { this._handleUpdateHour(12); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 12, 'deg270': true })}><span style="font-size: 16px; line-height: 26px; ">12</span></mwc-icon-button>
-                        <mwc-icon-button hour="1" @click=${()=> { this._handleUpdateHour(1); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 1, 'deg300': true })}><span style="font-size: 16px; line-height: 26px; ">1</span></mwc-icon-button>
-                        <mwc-icon-button hour="2" @click=${()=> { this._handleUpdateHour(2); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 2, 'deg330': true })}><span style="font-size: 16px; line-height: 26px; ">2</span></mwc-icon-button>
-                        <mwc-icon-button hour="3" @click=${()=> { this._handleUpdateHour(3); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 3, 'deg0': true })}><span style="font-size: 16px; line-height: 26px; ">3</span></mwc-icon-button>
-                        <mwc-icon-button hour="4" @click=${()=> { this._handleUpdateHour(4); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 4, 'deg30': true })}><span style="font-size: 16px; line-height: 26px; ">4</span></mwc-icon-button>
-                        <mwc-icon-button hour="5" @click=${()=> { this._handleUpdateHour(5); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 5, 'deg60': true })}><span style="font-size: 16px; line-height: 26px; ">5</span></mwc-icon-button>
-                        <mwc-icon-button hour="6" @click=${()=> { this._handleUpdateHour(6); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 6, 'deg90': true })}><span style="font-size: 16px; line-height: 26px; ">6</span></mwc-icon-button>
-                        <mwc-icon-button hour="7" @click=${()=> { this._handleUpdateHour(7); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 7, 'deg120': true })}><span style="font-size: 16px; line-height: 26px; ">7</span></mwc-icon-button>
-                        <mwc-icon-button hour="8" @click=${()=> { this._handleUpdateHour(8); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 8, 'deg150': true })}><span style="font-size: 16px; line-height: 26px; ">8</span></mwc-icon-button>
-                        <mwc-icon-button hour="9" @click=${()=> { this._handleUpdateHour(9); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 9, 'deg180': true })}><span style="font-size: 16px; line-height: 26px; ">9</span></mwc-icon-button>
-                        <mwc-icon-button hour="10" @click=${()=> { this._handleUpdateHour(10); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 10, 'deg210': true })}><span style="font-size: 16px; line-height: 26px; ">10</span></mwc-icon-button>
-                        <mwc-icon-button hour="11" @click=${()=> { this._handleUpdateHour(11); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 11, 'deg240': true })}><span style="font-size: 16px; line-height: 26px; ">11</span></mwc-icon-button>
+                        <mwc-icon-button hour="12" @click=${(): void => { this._updateEditedAlarmHour(12); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 12, 'deg270': true })}><span style="font-size: 16px; line-height: 26px; ">12</span></mwc-icon-button>
+                        <mwc-icon-button hour="1" @click=${(): void => { this._updateEditedAlarmHour(1); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 1, 'deg300': true })}><span style="font-size: 16px; line-height: 26px; ">1</span></mwc-icon-button>
+                        <mwc-icon-button hour="2" @click=${(): void => { this._updateEditedAlarmHour(2); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 2, 'deg330': true })}><span style="font-size: 16px; line-height: 26px; ">2</span></mwc-icon-button>
+                        <mwc-icon-button hour="3" @click=${(): void => { this._updateEditedAlarmHour(3); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 3, 'deg0': true })}><span style="font-size: 16px; line-height: 26px; ">3</span></mwc-icon-button>
+                        <mwc-icon-button hour="4" @click=${(): void => { this._updateEditedAlarmHour(4); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 4, 'deg30': true })}><span style="font-size: 16px; line-height: 26px; ">4</span></mwc-icon-button>
+                        <mwc-icon-button hour="5" @click=${(): void => { this._updateEditedAlarmHour(5); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 5, 'deg60': true })}><span style="font-size: 16px; line-height: 26px; ">5</span></mwc-icon-button>
+                        <mwc-icon-button hour="6" @click=${(): void => { this._updateEditedAlarmHour(6); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 6, 'deg90': true })}><span style="font-size: 16px; line-height: 26px; ">6</span></mwc-icon-button>
+                        <mwc-icon-button hour="7" @click=${(): void => { this._updateEditedAlarmHour(7); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 7, 'deg120': true })}><span style="font-size: 16px; line-height: 26px; ">7</span></mwc-icon-button>
+                        <mwc-icon-button hour="8" @click=${(): void => { this._updateEditedAlarmHour(8); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 8, 'deg150': true })}><span style="font-size: 16px; line-height: 26px; ">8</span></mwc-icon-button>
+                        <mwc-icon-button hour="9" @click=${(): void => { this._updateEditedAlarmHour(9); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 9, 'deg180': true })}><span style="font-size: 16px; line-height: 26px; ">9</span></mwc-icon-button>
+                        <mwc-icon-button hour="10" @click=${(): void => { this._updateEditedAlarmHour(10); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 10, 'deg210': true })}><span style="font-size: 16px; line-height: 26px; ">10</span></mwc-icon-button>
+                        <mwc-icon-button hour="11" @click=${(): void => { this._updateEditedAlarmHour(11); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 11, 'deg240': true })}><span style="font-size: 16px; line-height: 26px; ">11</span></mwc-icon-button>
 
-                        <mwc-icon-button hour="0" @click=${()=> { this._handleUpdateHour(0); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 0, 'deg2702': true })}><span style="font-size: 14px; line-height: 24px; ">0</span></mwc-icon-button>
-                        <mwc-icon-button hour="13" @click=${()=> { this._handleUpdateHour(13); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 13, 'deg3002': true })}><span style="font-size: 14px; line-height: 24px; ">13</span></mwc-icon-button>
-                        <mwc-icon-button hour="14" @click=${()=> { this._handleUpdateHour(14); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 14, 'deg3302': true })}><span style="font-size: 14px; line-height: 24px; ">14</span></mwc-icon-button>
-                        <mwc-icon-button hour="15" @click=${()=> { this._handleUpdateHour(15); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 15, 'deg02': true })}><span style="font-size: 14px; line-height: 24px; ">15</span></mwc-icon-button>
-                        <mwc-icon-button hour="16" @click=${()=> { this._handleUpdateHour(16); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 16, 'deg302': true })}><span style="font-size: 14px; line-height: 24px; ">16</span></mwc-icon-button>
-                        <mwc-icon-button hour="17" @click=${()=> { this._handleUpdateHour(17); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 17, 'deg602': true })}><span style="font-size: 14px; line-height: 24px; ">17</span></mwc-icon-button>
-                        <mwc-icon-button hour="18" @click=${()=> { this._handleUpdateHour(18); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 18, 'deg902': true })}><span style="font-size: 14px; line-height: 24px; ">18</span></mwc-icon-button>
-                        <mwc-icon-button hour="19" @click=${()=> { this._handleUpdateHour(19); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 19, 'deg1202': true })}><span style="font-size: 14px; line-height: 24px; ">19</span></mwc-icon-button>
-                        <mwc-icon-button hour="20" @click=${()=> { this._handleUpdateHour(20); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 20, 'deg1502': true })}><span style="font-size: 14px; line-height: 24px; ">20</span></mwc-icon-button>
-                        <mwc-icon-button hour="21" @click=${()=> { this._handleUpdateHour(21); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 21, 'deg1802': true })}><span style="font-size: 14px; line-height: 24px; ">21</span></mwc-icon-button>
-                        <mwc-icon-button hour="22" @click=${()=> { this._handleUpdateHour(22); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 22, 'deg2102': true })}><span style="font-size: 14px; line-height: 24px; ">22</span></mwc-icon-button>
-                        <mwc-icon-button hour="23" @click=${()=> { this._handleUpdateHour(23); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 23, 'deg2402': true })}><span style="font-size: 14px; line-height: 24px; ">23</span></mwc-icon-button>
+                        <mwc-icon-button hour="0" @click=${(): void => { this._updateEditedAlarmHour(0); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 0, 'closeDeg270': true })}><span style="font-size: 14px; line-height: 24px; ">0</span></mwc-icon-button>
+                        <mwc-icon-button hour="13" @click=${(): void => { this._updateEditedAlarmHour(13); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 13, 'closeDeg300': true })}><span style="font-size: 14px; line-height: 24px; ">13</span></mwc-icon-button>
+                        <mwc-icon-button hour="14" @click=${(): void => { this._updateEditedAlarmHour(14); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 14, 'closeDeg330': true })}><span style="font-size: 14px; line-height: 24px; ">14</span></mwc-icon-button>
+                        <mwc-icon-button hour="15" @click=${(): void => { this._updateEditedAlarmHour(15); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 15, 'closeDeg0': true })}><span style="font-size: 14px; line-height: 24px; ">15</span></mwc-icon-button>
+                        <mwc-icon-button hour="16" @click=${(): void => { this._updateEditedAlarmHour(16); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 16, 'closeDeg30': true })}><span style="font-size: 14px; line-height: 24px; ">16</span></mwc-icon-button>
+                        <mwc-icon-button hour="17" @click=${(): void => { this._updateEditedAlarmHour(17); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 17, 'closeDeg60': true })}><span style="font-size: 14px; line-height: 24px; ">17</span></mwc-icon-button>
+                        <mwc-icon-button hour="18" @click=${(): void => { this._updateEditedAlarmHour(18); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 18, 'closeDeg90': true })}><span style="font-size: 14px; line-height: 24px; ">18</span></mwc-icon-button>
+                        <mwc-icon-button hour="19" @click=${(): void => { this._updateEditedAlarmHour(19); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 19, 'closeDeg120': true })}><span style="font-size: 14px; line-height: 24px; ">19</span></mwc-icon-button>
+                        <mwc-icon-button hour="20" @click=${(): void => { this._updateEditedAlarmHour(20); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 20, 'closeDeg150': true })}><span style="font-size: 14px; line-height: 24px; ">20</span></mwc-icon-button>
+                        <mwc-icon-button hour="21" @click=${(): void => { this._updateEditedAlarmHour(21); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 21, 'closeDeg180': true })}><span style="font-size: 14px; line-height: 24px; ">21</span></mwc-icon-button>
+                        <mwc-icon-button hour="22" @click=${(): void => { this._updateEditedAlarmHour(22); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 22, 'closeDeg210': true })}><span style="font-size: 14px; line-height: 24px; ">22</span></mwc-icon-button>
+                        <mwc-icon-button hour="23" @click=${(): void => { this._updateEditedAlarmHour(23); this.editHour = false; }} class=${classMap({ enabled: this.currentAlarm?.hour == 23, 'closeDeg240': true })}><span style="font-size: 14px; line-height: 24px; ">23</span></mwc-icon-button>
                       </div>
                     `
                     : html`
                       <div class="clock-minute">
-                        <mwc-icon-button minute="0" @click=${()=> { this._handleUpdateMinute(0) }} class=${classMap({ enabled: this.currentAlarm?.minute == 0, 'deg270': true })}><span style="font-size: 16px; line-height: 26px; ">0</span></mwc-icon-button>
-                        <mwc-icon-button minute="5" @click=${()=> { this._handleUpdateMinute(5) }} class=${classMap({ enabled: this.currentAlarm?.minute == 5, 'deg300': true })}><span style="font-size: 16px; line-height: 26px; ">5</span></mwc-icon-button>
-                        <mwc-icon-button minute="10" @click=${()=> { this._handleUpdateMinute(10) }} class=${classMap({ enabled: this.currentAlarm?.minute == 10, 'deg330': true })}><span style="font-size: 16px; line-height: 26px; ">10</span></mwc-icon-button>
-                        <mwc-icon-button minute="15" @click=${()=> { this._handleUpdateMinute(15) }} class=${classMap({ enabled: this.currentAlarm?.minute == 15, 'deg0': true })}><span style="font-size: 16px; line-height: 26px; ">15</span></mwc-icon-button>
-                        <mwc-icon-button minute="20" @click=${()=> { this._handleUpdateMinute(20) }} class=${classMap({ enabled: this.currentAlarm?.minute == 20, 'deg30': true })}><span style="font-size: 16px; line-height: 26px; ">20</span></mwc-icon-button>
-                        <mwc-icon-button minute="25" @click=${()=> { this._handleUpdateMinute(25) }} class=${classMap({ enabled: this.currentAlarm?.minute == 25, 'deg60': true })}><span style="font-size: 16px; line-height: 26px; ">25</span></mwc-icon-button>
-                        <mwc-icon-button minute="30" @click=${()=> { this._handleUpdateMinute(30) }} class=${classMap({ enabled: this.currentAlarm?.minute == 30, 'deg90': true })}><span style="font-size: 16px; line-height: 26px; ">30</span></mwc-icon-button>
-                        <mwc-icon-button minute="35" @click=${()=> { this._handleUpdateMinute(35) }} class=${classMap({ enabled: this.currentAlarm?.minute == 35, 'deg120': true })}><span style="font-size: 16px; line-height: 26px; ">35</span></mwc-icon-button>
-                        <mwc-icon-button minute="40" @click=${()=> { this._handleUpdateMinute(40) }} class=${classMap({ enabled: this.currentAlarm?.minute == 40, 'deg150': true })}><span style="font-size: 16px; line-height: 26px; ">40</span></mwc-icon-button>
-                        <mwc-icon-button minute="45" @click=${()=> { this._handleUpdateMinute(45) }} class=${classMap({ enabled: this.currentAlarm?.minute == 45, 'deg180': true })}><span style="font-size: 16px; line-height: 26px; ">45</span></mwc-icon-button>
-                        <mwc-icon-button minute="50" @click=${()=> { this._handleUpdateMinute(50) }} class=${classMap({ enabled: this.currentAlarm?.minute == 50, 'deg210': true })}><span style="font-size: 16px; line-height: 26px; ">50</span></mwc-icon-button>
-                        <mwc-icon-button minute="55" @click=${()=> { this._handleUpdateMinute(55) }} class=${classMap({ enabled: this.currentAlarm?.minute == 55, 'deg240': true })}><span style="font-size: 16px; line-height: 26px; ">55</span></mwc-icon-button>
+                        <mwc-icon-button minute="0" @click=${(): void => { this._updateEditedAlarmMinute(0) }} class=${classMap({ enabled: this.currentAlarm?.minute == 0, 'deg270': true })}><span style="font-size: 16px; line-height: 26px; ">0</span></mwc-icon-button>
+                        <mwc-icon-button minute="5" @click=${(): void => { this._updateEditedAlarmMinute(5) }} class=${classMap({ enabled: this.currentAlarm?.minute == 5, 'deg300': true })}><span style="font-size: 16px; line-height: 26px; ">5</span></mwc-icon-button>
+                        <mwc-icon-button minute="10" @click=${(): void => { this._updateEditedAlarmMinute(10) }} class=${classMap({ enabled: this.currentAlarm?.minute == 10, 'deg330': true })}><span style="font-size: 16px; line-height: 26px; ">10</span></mwc-icon-button>
+                        <mwc-icon-button minute="15" @click=${(): void => { this._updateEditedAlarmMinute(15) }} class=${classMap({ enabled: this.currentAlarm?.minute == 15, 'deg0': true })}><span style="font-size: 16px; line-height: 26px; ">15</span></mwc-icon-button>
+                        <mwc-icon-button minute="20" @click=${(): void => { this._updateEditedAlarmMinute(20) }} class=${classMap({ enabled: this.currentAlarm?.minute == 20, 'deg30': true })}><span style="font-size: 16px; line-height: 26px; ">20</span></mwc-icon-button>
+                        <mwc-icon-button minute="25" @click=${(): void => { this._updateEditedAlarmMinute(25) }} class=${classMap({ enabled: this.currentAlarm?.minute == 25, 'deg60': true })}><span style="font-size: 16px; line-height: 26px; ">25</span></mwc-icon-button>
+                        <mwc-icon-button minute="30" @click=${(): void => { this._updateEditedAlarmMinute(30) }} class=${classMap({ enabled: this.currentAlarm?.minute == 30, 'deg90': true })}><span style="font-size: 16px; line-height: 26px; ">30</span></mwc-icon-button>
+                        <mwc-icon-button minute="35" @click=${(): void => { this._updateEditedAlarmMinute(35) }} class=${classMap({ enabled: this.currentAlarm?.minute == 35, 'deg120': true })}><span style="font-size: 16px; line-height: 26px; ">35</span></mwc-icon-button>
+                        <mwc-icon-button minute="40" @click=${(): void => { this._updateEditedAlarmMinute(40) }} class=${classMap({ enabled: this.currentAlarm?.minute == 40, 'deg150': true })}><span style="font-size: 16px; line-height: 26px; ">40</span></mwc-icon-button>
+                        <mwc-icon-button minute="45" @click=${(): void => { this._updateEditedAlarmMinute(45) }} class=${classMap({ enabled: this.currentAlarm?.minute == 45, 'deg180': true })}><span style="font-size: 16px; line-height: 26px; ">45</span></mwc-icon-button>
+                        <mwc-icon-button minute="50" @click=${(): void => { this._updateEditedAlarmMinute(50) }} class=${classMap({ enabled: this.currentAlarm?.minute == 50, 'deg210': true })}><span style="font-size: 16px; line-height: 26px; ">50</span></mwc-icon-button>
+                        <mwc-icon-button minute="55" @click=${(): void => { this._updateEditedAlarmMinute(55) }} class=${classMap({ enabled: this.currentAlarm?.minute == 55, 'deg240': true })}><span style="font-size: 16px; line-height: 26px; ">55</span></mwc-icon-button>
                       </div>
                     `
                 }
@@ -200,25 +207,25 @@ export class AlarmClockCard extends LitElement {
             </div>
             <p>Répeter</p>
             <div class="alarm-detail-repeat">
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(0) }} class=${classMap({ enabled: !!this.currentAlarm?.monday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(0) }} class=${classMap({ enabled: !!this.currentAlarm?.monday })}>
                 <span style="font-size: 16px; line-height: 26px; ">L</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(1) }} class=${classMap({ enabled: !!this.currentAlarm?.tuesday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(1) }} class=${classMap({ enabled: !!this.currentAlarm?.tuesday })}>
                 <span style="font-size: 16px; line-height: 26px;">M</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(2) }} class=${classMap({ enabled: !!this.currentAlarm?.wednesday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(2) }} class=${classMap({ enabled: !!this.currentAlarm?.wednesday })}>
                 <span style="font-size: 16px; line-height: 26px;">M</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(3) }} class=${classMap({ enabled: !!this.currentAlarm?.thursday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(3) }} class=${classMap({ enabled: !!this.currentAlarm?.thursday })}>
                 <span style="font-size: 16px; line-height: 26px;">J</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(4) }} class=${classMap({ enabled: !!this.currentAlarm?.friday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(4) }} class=${classMap({ enabled: !!this.currentAlarm?.friday })}>
                 <span style="font-size: 16px; line-height: 26px;">V</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(5) }} class=${classMap({ enabled: !!this.currentAlarm?.saturday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(5) }} class=${classMap({ enabled: !!this.currentAlarm?.saturday })}>
                 <span style="font-size: 16px; line-height: 26px;">S</span>
               </mwc-icon-button>
-              <mwc-icon-button @click=${()=> { this._handleToggleDay(6) }} class=${classMap({ enabled: !!this.currentAlarm?.sunday })}>
+              <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(6) }} class=${classMap({ enabled: !!this.currentAlarm?.sunday })}>
                 <span style="font-size: 16px; line-height: 26px;">D</span>
               </mwc-icon-button>
             </div>
@@ -283,16 +290,47 @@ export class AlarmClockCard extends LitElement {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/camelcase
     this.hass.callService('input_text', 'set_value', { entity_id: entity, value: alarms.map(this._encodeRaw).join(',') });
   }
 
-  private _handleToggleAlarm(index: number): void {
+  private _toggleEnabledAlarm(index: number): void {
     const newAlarms = this._getAlarms().slice(0);
     newAlarms[index].enabled = !newAlarms[index].enabled;
     this._setAlarms(newAlarms);
   }
 
-  private _handleAdd(): void {
+  private _touchAlarmStart(index: number, e: any): void {
+    this.touchAlarmTimer = setTimeout(() => { this.touchAlarmTimer = null; this._selectAlarm(index); }, this.touchAlarmDuration);
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  private _touchAlarmEnd(index: number, e: any): void {
+    if (this.touchAlarmTimer) {
+      clearTimeout(this.touchAlarmTimer);
+      this.touchAlarmTimer = null;
+
+      if (this.selectedAlarmIndex.length > 0) {
+        this._selectAlarm(index);
+      } else {
+        this._editAlarm(index);
+      }
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  private _touchAlarmMove(e: any): void {
+    if (this.touchAlarmTimer) {
+      clearTimeout(this.touchAlarmTimer);
+      this.touchAlarmTimer = null;
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  private _addAlarm(): void {
     const newAlarms = this._getAlarms().slice(0);
     newAlarms.push({
       hour: 8,
@@ -309,36 +347,38 @@ export class AlarmClockCard extends LitElement {
     this._setAlarms(newAlarms);
   }
 
-  private _handleTouch(index: number) {
-    this.touchIndex = index;
-    this.touchTimeoutId = setTimeout(() => {
-      this._toggleSelectedIndex(index);
-      this.touchTimeoutId = null;
-      this.touchIndex = null;
-    }, 1000);
+  private _editAlarm(index: number): void {
+    this.currentAlarmIndex = index;
+    this.currentAlarm = this._getAlarms()[index];
+    this.editHour = true;
+    this.edit = true;
   }
 
-  private _handleClick(index: number) {
-    if (this.touchTimeoutId) {
-      clearTimeout(this.touchTimeoutId);
-      this.touchTimeoutId = null;
-      this.touchIndex = null;
-      this._handleToggleSelectAlarm(index);
+  private _deleteSelectedAlarms(): void {
+    const newAlarms = this._getAlarms().slice();
+    const indexes = this.selectedAlarmIndex.sort().reverse();
+    for (let i = 0; i < indexes.length; i++) {
+      const index = indexes[i];
+      newAlarms.splice(index, 1);
     }
+    this.selectedAlarmIndex = [];
+    this._setAlarms(newAlarms);
   }
 
-  private _handleToggleSelectAlarm(index: number): void {
-    if (this.selectedAlarmIndex.length > 0) {
-      this._toggleSelectedIndex(index);
-    } else {
-      this.currentAlarmIndex = index;
-      this.currentAlarm = this._getAlarms()[index];
-      this.editHour = true;
-      this.edit = true;
+  private _saveAlarm(): void {
+    const currentAlarmIndex = this.currentAlarmIndex;
+    const currentAlarm = this.currentAlarm;
+    const newAlarms = this._getAlarms().slice();
+    if (currentAlarm && currentAlarmIndex) {
+      newAlarms[currentAlarmIndex] = currentAlarm;
     }
+    this._setAlarms(newAlarms);
+    this.currentAlarm = null;
+    this.currentAlarmIndex = null;
+    this.edit = false;
   }
 
-  private _toggleSelectedIndex(index) {
+  private _selectAlarm(index): void {
     const selectedAlarmIndex = this.selectedAlarmIndex.slice(0);
     if (selectedAlarmIndex.indexOf(index) === -1) {
       selectedAlarmIndex.push(index);
@@ -348,7 +388,7 @@ export class AlarmClockCard extends LitElement {
     this.selectedAlarmIndex = selectedAlarmIndex;
   }
 
-  private _handleCheckUpdateHour(event: any): void {
+  private _checkAndUpdateEditedAlarmHour(event: any): void {
     let newHour = +event.target.value;
     if (newHour > 23) {
       newHour = 23;
@@ -357,10 +397,10 @@ export class AlarmClockCard extends LitElement {
       newHour = 0;
     }
 
-    this._handleUpdateHour(newHour);
+    this._updateEditedAlarmHour(newHour);
   }
 
-  private _handleCheckUpdateMinute(event: any): void {
+  private _checkAndUpdateEditedAlarmMinute(event: any): void {
     let newMinute = +event.target.value;
     if (newMinute > 59) {
       newMinute = 59;
@@ -369,22 +409,22 @@ export class AlarmClockCard extends LitElement {
       newMinute = 0;
     }
 
-    this._handleUpdateMinute(newMinute);
+    this._updateEditedAlarmMinute(newMinute);
   }
 
-  private _handleUpdateHour(hour: number): void {
-    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm!!));
+  private _updateEditedAlarmHour(hour: number): void {
+    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm));
     newCurrentAlarm.hour = hour;
     this.currentAlarm = newCurrentAlarm;
   }
 
-  private _handleUpdateMinute(minute: number): void {
-    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm!!));
+  private _updateEditedAlarmMinute(minute: number): void {
+    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm));
     newCurrentAlarm.minute = minute;
     this.currentAlarm = newCurrentAlarm;
   }
 
-  private _handleToggleDay(indexDay: number): void {
+  private _updateEditedAlarmEabledDay(indexDay: number): void {
     let day;
     switch (indexDay) {
       case 0:
@@ -410,35 +450,12 @@ export class AlarmClockCard extends LitElement {
         day = 'sunday';
         break;
     }
-    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm!!));
+    const newCurrentAlarm = JSON.parse(JSON.stringify(this.currentAlarm));
     newCurrentAlarm[day] = !newCurrentAlarm[day];
     this.currentAlarm = newCurrentAlarm;
   }
 
   private _handleBack(): void {
-    this.currentAlarm = null;
-    this.currentAlarmIndex = null;
-    this.edit = false;
-  }
-
-  private _handleDelete(): void {
-    const newAlarms = this._getAlarms().slice();
-    const indexes = this.selectedAlarmIndex.sort().reverse();
-    for (let i = 0; i < indexes.length; i++) {
-      const index = indexes[i];
-      newAlarms.splice(index, 1);
-    }
-    this.selectedAlarmIndex = [];
-    this._setAlarms(newAlarms);
-  }
-
-  private _handleSave(): void {
-    const currentAlarm = this.currentAlarm;
-    const newAlarms = this._getAlarms().slice();
-    if (currentAlarm) {
-      newAlarms[this.currentAlarmIndex!!] = currentAlarm;
-    }
-    this._setAlarms(newAlarms);
     this.currentAlarm = null;
     this.currentAlarmIndex = null;
     this.edit = false;
@@ -648,18 +665,18 @@ export class AlarmClockCard extends LitElement {
       .deg270 { transform: rotate(270deg) translate(100px) rotate(-270deg); }
       .deg300 { transform: rotate(300deg) translate(100px) rotate(-300deg); }
       .deg330 { transform: rotate(330deg) translate(100px) rotate(-330deg); }
-      .deg02 { transform: translate(70px); }
-      .deg302 { transform: rotate(30deg) translate(70px) rotate(-30deg); }
-      .deg602 { transform: rotate(60deg) translate(70px) rotate(-60deg); }
-      .deg902 { transform: rotate(90deg) translate(70px) rotate(-90deg); }
-      .deg1202 { transform: rotate(120deg) translate(70px) rotate(-120deg); }
-      .deg1502 { transform: rotate(150deg) translate(70px) rotate(-150deg); }
-      .deg1802 { transform: rotate(180deg) translate(70px) rotate(-180deg); }
-      .deg2102 { transform: rotate(210deg) translate(70px) rotate(-210deg); }
-      .deg2402 { transform: rotate(240deg) translate(70px) rotate(-240deg); }
-      .deg2702 { transform: rotate(270deg) translate(70px) rotate(-270deg); }
-      .deg3002 { transform: rotate(300deg) translate(70px) rotate(-300deg); }
-      .deg3302 { transform: rotate(330deg) translate(70px) rotate(-330deg); }
+      .closeDeg0 { transform: translate(70px); }
+      .closeDeg30 { transform: rotate(30deg) translate(70px) rotate(-30deg); }
+      .closeDeg60 { transform: rotate(60deg) translate(70px) rotate(-60deg); }
+      .closeDeg90 { transform: rotate(90deg) translate(70px) rotate(-90deg); }
+      .closeDeg120 { transform: rotate(120deg) translate(70px) rotate(-120deg); }
+      .closeDeg150 { transform: rotate(150deg) translate(70px) rotate(-150deg); }
+      .closeDeg180 { transform: rotate(180deg) translate(70px) rotate(-180deg); }
+      .closeDeg210 { transform: rotate(210deg) translate(70px) rotate(-210deg); }
+      .closeDeg240 { transform: rotate(240deg) translate(70px) rotate(-240deg); }
+      .closeDeg270 { transform: rotate(270deg) translate(70px) rotate(-270deg); }
+      .closeDeg300 { transform: rotate(300deg) translate(70px) rotate(-300deg); }
+      .closeDeg330 { transform: rotate(330deg) translate(70px) rotate(-330deg); }
 
       .alarm-detail-timepicker-time {
         display: flex;
