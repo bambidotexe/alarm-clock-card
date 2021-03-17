@@ -78,7 +78,7 @@ export class AlarmClockCard extends LitElement {
     }
 
     this.config = {
-      name: 'Alarmes',
+      name: localize('card.name'),
       ...config,
     };
   }
@@ -205,28 +205,28 @@ export class AlarmClockCard extends LitElement {
                 }
               </div>
             </div>
-            <p>Répeter</p>
+            <p>${localize('card.repeat')}</p>
             <div class="alarm-detail-repeat">
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(0) }} class=${classMap({ enabled: !!this.currentAlarm?.monday })}>
-                <span style="font-size: 16px; line-height: 26px; ">L</span>
+                <span style="font-size: 16px; line-height: 26px; ">${localize('card.daysFirstLetter.monday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(1) }} class=${classMap({ enabled: !!this.currentAlarm?.tuesday })}>
-                <span style="font-size: 16px; line-height: 26px;">M</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.tuesday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(2) }} class=${classMap({ enabled: !!this.currentAlarm?.wednesday })}>
-                <span style="font-size: 16px; line-height: 26px;">M</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.wednesday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(3) }} class=${classMap({ enabled: !!this.currentAlarm?.thursday })}>
-                <span style="font-size: 16px; line-height: 26px;">J</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.thursday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(4) }} class=${classMap({ enabled: !!this.currentAlarm?.friday })}>
-                <span style="font-size: 16px; line-height: 26px;">V</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.friday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(5) }} class=${classMap({ enabled: !!this.currentAlarm?.saturday })}>
-                <span style="font-size: 16px; line-height: 26px;">S</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.saturday')}</span>
               </mwc-icon-button>
               <mwc-icon-button @click=${(): void => { this._updateEditedAlarmEabledDay(6) }} class=${classMap({ enabled: !!this.currentAlarm?.sunday })}>
-                <span style="font-size: 16px; line-height: 26px;">D</span>
+                <span style="font-size: 16px; line-height: 26px;">${localize('card.daysFirstLetter.sunday')}</span>
               </mwc-icon-button>
             </div>
           </div>
@@ -464,28 +464,28 @@ export class AlarmClockCard extends LitElement {
   private _parseDays(alarm: Alarm): string {
     const days = [alarm.monday, alarm.tuesday, alarm.wednesday, alarm.thursday, alarm.friday, alarm.saturday, alarm.sunday];
     if (days.every(x => !x)) {
-      return 'Demain';
+      return localize('card.tommorow');
     } else if (days.every(x => !!x)) {
-      return 'Tout les jours';
+      return localize('card.everyday');
     } else {
       return days
         .map((value, index) => {
           if (value) {
             switch (index) {
               case 0:
-                return 'Lun';
+                return localize('card.daysShort.monday');
               case 1:
-                return 'Mar';
+                return localize('card.daysShort.tuesday');
               case 2:
-                return 'Mer';
+                return localize('card.daysShort.wednesday');
               case 3:
-                return 'Jeu';
+                return localize('card.daysShort.thursday');
               case 4:
-                return 'Ven';
+                return localize('card.daysShort.friday');
               case 5:
-                return 'Sam';
+                return localize('card.daysShort.saturday');
               case 6:
-                return 'Dim';
+                return localize('card.daysShort.sunday');
             }
           }
           return null;

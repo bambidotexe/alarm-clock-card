@@ -1,0 +1,29 @@
+{
+  "common": {
+    "invalid_configuration": "Configuration invalide"
+  },
+  "card": {
+    "name": "Alarmes",
+    "daysShort": {
+      "monday": "Lun",
+      "tuesday": "Mar",
+      "wednesday": "Mer",
+      "thursday": "Jeu",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    },
+    "daysFirstLetter": {
+      "monday": "L",
+      "tuesday": "M",
+      "wednesday": "M",
+      "thursday": "J",
+      "friday": "V",
+      "saturday": "S",
+      "sunday": "D"
+    },
+    "repeat": "Répéter",
+    "everyday": "Tout les jours",
+    "tommorow": "Demain"
+  }
+}

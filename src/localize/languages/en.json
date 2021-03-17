@@ -1,8 +1,29 @@
 {
   "common": {
-    "version": "Version",
-    "invalid_configuration": "Invalid configuration",
-    "show_warning": "Show Warning",
-    "show_error": "Show Error"
+    "invalid_configuration": "Invalid configuration"
+  },
+  "card": {
+    "name": "Alarms",
+    "daysShort": {
+      "monday": "Mon",
+      "tuesday": "Tue",
+      "wednesday": "Wed",
+      "thursday": "Thu",
+      "friday": "Fri",
+      "saturday": "Sat",
+      "sunday": "Sun"
+    },
+    "daysFirstLetter": {
+      "monday": "M",
+      "tuesday": "T",
+      "wednesday": "W",
+      "thursday": "T",
+      "friday": "F",
+      "saturday": "S",
+      "sunday": "S"
+    },
+    "repeat": "Repeat",
+    "everyday": "Everyday",
+    "tommorow": "Tommorow"
   }
 }
