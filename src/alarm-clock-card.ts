@@ -378,7 +378,7 @@ export class AlarmClockCard extends LitElement {
     const currentAlarmIndex = this.currentAlarmIndex;
     const currentAlarm = this.currentAlarm;
     const newAlarms = this._getAlarms().slice();
-    if (currentAlarm && currentAlarmIndex) {
+    if (currentAlarm && currentAlarmIndex !== null) {
       newAlarms[currentAlarmIndex] = currentAlarm;
     }
     this._setAlarms(newAlarms);
