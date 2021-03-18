@@ -83,7 +83,8 @@
     "wires": [
       [
         "786e7f69.91c05",
-        "ebce1d5b.56573"
+        "ebce1d5b.56573",
+        "6a39189.9db61e8"
       ]
     ]
   },
@@ -109,49 +110,6 @@
     "wires": [
       [
         "746ba836.3b9e58"
-      ]
-    ]
-  },
-  {
-    "id": "984a1535.6a9d38",
-    "type": "moment",
-    "z": "c9a0735f.09b2d",
-    "name": "Plus 30min",
-    "topic": "",
-    "input": "alarm",
-    "inputType": "msg",
-    "inTz": "Europe/Paris",
-    "adjAmount": "30",
-    "adjType": "minutes",
-    "adjDir": "add",
-    "format": "HH:mm",
-    "locale": "C",
-    "output": "start",
-    "outputType": "msg",
-    "outTz": "Europe/Paris",
-    "x": 950,
-    "y": 200,
-    "wires": [
-      [
-        "befbab54.387908"
-      ]
-    ]
-  },
-  {
-    "id": "befbab54.387908",
-    "type": "function",
-    "z": "c9a0735f.09b2d",
-    "name": "Compare time",
-    "func": "const current = new Date();\n\nlet currentHours = current.getHours();\ncurrentHours =  (currentHours < 10 ? '0' : '') + currentHours;\n\nlet currentMinutes = current.getMinutes();\ncurrentMinutes = (currentMinutes < 10 ? '0' : '') + currentMinutes;\n\nconst currentStr = currentHours + ':' + currentMinutes;\nif (currentStr == msg.start) {\n    return msg;\n}\n",
-    "outputs": 1,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "x": 1120,
-    "y": 200,
-    "wires": [
-      [
-        "238e5cf1.0bfdb4"
       ]
     ]
   },
@@ -205,7 +163,7 @@
     "type": "function",
     "z": "c9a0735f.09b2d",
     "name": "Filter alarms",
-    "func": "var now = new Date();\nvar day;\nswitch (now.getDay()) {\n  case 0:\n    day = 'sunday';\n    break;\n  case 1:\n    day = 'monday';\n    break;\n  case 2:\n    day = 'tuesday';\n    break;\n  case 3:\n    day = 'wednesday';\n    break;\n  case 4:\n    day = 'thursday';\n    break;\n  case 5:\n    day = 'friday';\n    break;\n  case 6:\n    day = 'saturday';\n    break;\n}\n\nvar alarms = msg.payload;\nfor (let index = alarms.length - 1; index >= 0; index--) {\n  var alarm = alarms[index];\n  var onlyTommorrow = !alarm.monday && !alarm.tuesday && !alarm.wednesday && !alarm.thursday && !alarm.friday && !alarm.saturday && !alarm.sunday;\n  if (alarm.enabled && (alarm[day] || onlyTommorrow)) {\n    alarm.alarm = ((alarm.hour < 10 ? '0': '') + alarm.hour) + ':' + ((alarm.minute < 10 ? '0': '') + alarm.minute);\n    if (\n      onlyTommorrow &&\n      alarm.hour == now.getHours() &&\n      alarm.minute == now.getMinutes()\n    ) {\n      alarm.toUnenable = true;\n    }\n  } else {\n    alarms.splice(index, 1);\n  }\n}\n\nreturn [[...alarms]];\n",
+    "func": "function encodeRaw(alarm) {\n  var raw = '';\n  raw += (alarm.hour < 10 ? '0' : '') + alarm.hour;\n  raw += (alarm.minute < 10 ? '0' : '') + alarm.minute;\n  raw += alarm.enabled ? '1' : '0';\n  raw += alarm.monday ? '1' : '0';\n  raw += alarm.tuesday ? '1' : '0';\n  raw += alarm.wednesday ? '1' : '0';\n  raw += alarm.thursday ? '1' : '0';\n  raw += alarm.friday ? '1' : '0';\n  raw += alarm.saturday ? '1' : '0';\n  raw += alarm.sunday ? '1' : '0';\n  return raw;\n}\n\nvar now = new Date();\nvar day;\nswitch (now.getDay()) {\n  case 0:\n    day = 'sunday';\n    break;\n  case 1:\n    day = 'monday';\n    break;\n  case 2:\n    day = 'tuesday';\n    break;\n  case 3:\n    day = 'wednesday';\n    break;\n  case 4:\n    day = 'thursday';\n    break;\n  case 5:\n    day = 'friday';\n    break;\n  case 6:\n    day = 'saturday';\n    break;\n}\n\nvar hasChangeBeenMade = false;\nvar newInputValue = '';\nvar alarms = msg.payload;\nfor (let index = alarms.length - 1; index >= 0; index--) {\n  var alarm = alarms[index];\n  alarm.type = 'alarm';\n  var onlyTommorrow = !alarm.monday && !alarm.tuesday && !alarm.wednesday && !alarm.thursday && !alarm.friday && !alarm.saturday && !alarm.sunday;\n  var pass = alarm.enabled && (alarm[day] || onlyTommorrow);\n  if (\n    onlyTommorrow &&\n    alarm.hour == now.getHours() &&\n    alarm.minute == now.getMinutes()\n  ) {\n    hasChangeBeenMade = true;\n    alarm.enabled = false;\n  }\n\n  if (index < alarms.length - 1) {\n    newInputValue = ',' + newInputValue;\n  }\n  newInputValue = encodeRaw(alarm) + newInputValue;\n\n  if (pass) {\n    alarm.alarm = ((alarm.hour < 10 ? '0' : '') + alarm.hour) + ':' + ((alarm.minute < 10 ? '0' : '') + alarm.minute);\n  } else {\n    alarms.splice(index, 1);\n  }\n}\n\nvar out = [...alarms];\n\nif (hasChangeBeenMade) {\n  out.push({ payload: newInputValue, type: \"newInputValue\" });\n}\n\nreturn [out];\n",
     "outputs": 1,
     "noerr": 0,
     "initialize": "",
@@ -214,10 +172,88 @@
     "y": 80,
     "wires": [
       [
-        "102af99f.ed07b6",
-        "1712f1b8.501dbe",
-        "984a1535.6a9d38"
+        "7dc8ce5f.33205"
       ]
+    ]
+  },
+  {
+    "id": "6a39189.9db61e8",
+    "type": "delay",
+    "z": "c9a0735f.09b2d",
+    "name": "",
+    "pauseType": "delay",
+    "timeout": "30",
+    "timeoutUnits": "minutes",
+    "rate": "1",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "x": 950,
+    "y": 200,
+    "wires": [
+      [
+        "238e5cf1.0bfdb4"
+      ]
+    ]
+  },
+  {
+    "id": "7dc8ce5f.33205",
+    "type": "switch",
+    "z": "c9a0735f.09b2d",
+    "name": "",
+    "property": "type",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "newInputValue",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "alarm",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 750,
+    "y": 80,
+    "wires": [
+      [
+        "4248ca16.7d4e34"
+      ],
+      [
+        "102af99f.ed07b6",
+        "1712f1b8.501dbe"
+      ]
+    ]
+  },
+  {
+    "id": "4248ca16.7d4e34",
+    "type": "api-call-service",
+    "z": "c9a0735f.09b2d",
+    "name": "Update alarms",
+    "server": "74486a3f.16c304",
+    "version": 1,
+    "debugenabled": false,
+    "service_domain": "input_text",
+    "service": "set_value",
+    "entityId": "input_text.alarm_bedroom",
+    "data": "{\"value\":\"{{payload}}\"}",
+    "dataType": "json",
+    "mergecontext": "",
+    "output_location": "",
+    "output_location_type": "none",
+    "mustacheAltTags": false,
+    "x": 960,
+    "y": 80,
+    "wires": [
+      []
     ]
   },
   {
